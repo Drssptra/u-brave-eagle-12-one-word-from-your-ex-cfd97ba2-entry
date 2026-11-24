@@ -14,6 +14,14 @@ const { join } = require("node:path");
 // The one word my ex would use to describe me.
 const word = "avoidant";
 
+// Guard: never write an empty or whitespace-only entry. A blank entry
+// would fail the one-word requirement, so fail loudly instead of
+// silently writing a blank file.
+if (word.trim().length === 0) {
+  process.stderr.write("entry word must not be empty\n");
+  process.exit(1);
+}
+
 const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
 mkdirSync(outDir, { recursive: true });
 writeFileSync(join(outDir, "entry.txt"), word);
