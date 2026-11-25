@@ -1,28 +1,46 @@
-// One Word From Your Ex — make.fun program/v1 entrypoint (Node 22, stdlib only).
+// u-brave-eagle-12-one-word-from-your-ex — v2 entrypoint.
 //
-// The entry is exactly one word, the word my ex would use to describe me:
-// "avoidant". It writes that word — and nothing else, no trailing newline —
-// to $MAKEFUN_OUTPUT_DIR/entry.txt (default /output/entry.txt), and prints
-// the same word plus a trailing newline to stdout. Deterministic, exit 0.
+// Prompt: one word from your ex. The word: "exhausting".
 //
-// Run it locally the way the grader does:
-//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
+// This program assembles the word from its syllables, checks it against
+// the competition gate (a single token, 1-24 characters, no whitespace),
+// and writes it — byte-exact, no trailing newline — to
+// $MAKEFUN_OUTPUT_DIR/entry.txt. Node 22, stdlib only, no network,
+// fully deterministic, exit 0 on success.
 
-const { mkdirSync, writeFileSync } = require("node:fs");
-const { join } = require("node:path");
+const fs = require("node:fs");
+const path = require("node:path");
 
-// The one word my ex would use to describe me.
-const word = "avoidant";
-
-// Guard: never write an empty or whitespace-only entry. A blank entry
-// would fail the one-word requirement, so fail loudly instead of
-// silently writing a blank file.
-if (word.trim().length === 0) {
-  process.stderr.write("entry word must not be empty\n");
-  process.exit(1);
+function buildWord() {
+  // ex-haust-ing: three syllables, joined with nothing in between.
+  const syllables = ["ex", "haust", "ing"];
+  return syllables.join("");
 }
 
-const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
-mkdirSync(outDir, { recursive: true });
-writeFileSync(join(outDir, "entry.txt"), word);
-process.stdout.write(word + "\n");
+function isSingleWord(value) {
+  // A single word means: non-empty, at most 24 chars, and splitting on
+  // any whitespace yields exactly one piece identical to the input.
+  // Also require every character to be a plain ASCII letter, so no
+  // stray punctuation or control character can slip through.
+  if (value.length < 1 || value.length > 24) return false;
+  if (!/^[A-Za-z]+$/.test(value)) return false;
+  const pieces = value.split(/\s+/);
+  return pieces.length === 1 && pieces[0] === value;
+}
+
+function main() {
+  const word = buildWord();
+
+  if (!isSingleWord(word)) {
+    throw new Error("entry failed gate: must be one word of 1-24 characters");
+  }
+
+  const outputDir = process.env.MAKEFUN_OUTPUT_DIR || "/output";
+  fs.mkdirSync(outputDir, { recursive: true });
+  // Buffer.from + no trailing newline: entry.txt must be exactly the
+  // word, 10 bytes, nothing else.
+  fs.writeFileSync(path.join(outputDir, "entry.txt"), Buffer.from(word, "utf8"));
+  console.log(word);
+}
+
+main();
